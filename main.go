@@ -1,4 +1,3 @@
-
 package main
 
 import (
@@ -9,32 +8,36 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("usage: Query-Builder <bytes|lines|reverse|upper|lower>")
+		fmt.Println("usage: query-builder <table> [cols] [--where k=v] [--order col] [--limit N]")
 		os.Exit(1)
 	}
-	mode := os.Args[1]
-	in := ""
-	if len(os.Args) > 2 {
-		in = os.Args[2]
-	}
-	lines := strings.Split(in, "\n")
-	switch mode {
-	case "lines":
-		fmt.Println(len(lines))
-	case "bytes":
-		fmt.Println(len(in))
-	case "upper":
-		fmt.Println(strings.ToUpper(in))
-	case "lower":
-		fmt.Println(strings.ToLower(in))
-	case "reverse":
-		runes := []rune(in)
-		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-			runes[i], runes[j] = runes[j], runes[i]
+	table := os.Args[1]
+	cols := "*"
+	where, order, limit := "", "", ""
+	args := os.Args[2:]
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "--where":
+			if i+1 < len(args) {
+				parts := strings.SplitN(args[i+1], "=", 2)
+				if len(parts) == 2 {
+					where = fmt.Sprintf(" WHERE %s = '%s'", parts[0], parts[1])
+				}
+				i++
+			}
+		case "--order":
+			if i+1 < len(args) {
+				order = " ORDER BY " + args[i+1]
+				i++
+			}
+		case "--limit":
+			if i+1 < len(args) {
+				limit = " LIMIT " + args[i+1]
+				i++
+			}
+		default:
+			cols = args[i]
 		}
-		fmt.Println(string(runes))
-	default:
-		fmt.Fprintln(os.Stderr, "unknown mode:", mode)
-		os.Exit(1)
 	}
+	fmt.Printf("SELECT %s FROM %s%s%s%s;\n", cols, table, where, order, limit)
 }
